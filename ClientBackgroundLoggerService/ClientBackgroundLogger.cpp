@@ -8,9 +8,20 @@
 #include <string>
 #include <vector>
 #include <fstream>
+#include <tchar.h>
 
 #define SERVER_IP "127.0.0.1"
 #define SERVER_PORT 5001
+
+#define SERVICE_NAME _T("ServiceName")
+
+SERVICE_STATUS        g_ServiceStatus = { 0 };
+SERVICE_STATUS_HANDLE g_ServiceStatusHandle = NULL;
+
+
+// sc create ServiceName binPath= "<полный_путь_к_исполняемому_файлу>"
+// sc start ServiceName
+// sc stop ServiceName
 
 
 
@@ -225,10 +236,54 @@ private:
     }
 };
 
-int main()
-{
-    ActivityTracker tracker{};
-    tracker.startTracking();
 
-    return 0;   
-}
+
+class ActivityTrackerService {
+public:
+    static void WINAPI ServiceMain(DWORD argc, LPTSTR* argv)
+    {
+        g_ServiceStatusHandle = RegisterServiceCtrlHandler(SERVICE_NAME, ServiceCtrlHandler);
+        if (!g_ServiceStatusHandle)
+        {
+            return;
+        }
+
+        SetCurrentServiceStatus(SERVICE_START_PENDING);
+
+        ActivityTracker tracker;
+
+        tracker.startTracking();
+
+        // SetCurrentServiceStatus(SERVICE_STOPPED);
+    }
+
+    static void WINAPI ServiceCtrlHandler(DWORD ctrlCode)
+    {
+        switch (ctrlCode)
+        {
+        case SERVICE_CONTROL_STOP:
+            SetCurrentServiceStatus(SERVICE_STOP_PENDING);
+            SetCurrentServiceStatus(SERVICE_STOPPED);
+            break;
+
+        }
+
+    }
+
+private:
+
+    static void SetCurrentServiceStatus(DWORD dwCurrentState)
+    {
+        g_ServiceStatus.dwCurrentState = dwCurrentState;
+        SetServiceStatus(g_ServiceStatusHandle, &g_ServiceStatus);
+    }
+};
+
+
+// int main()
+// {
+//     ActivityTracker tracker{};
+//     tracker.startTracking();
+//
+//     return 0;   
+// }

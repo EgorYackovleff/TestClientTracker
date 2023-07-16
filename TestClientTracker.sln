@@ -1,6 +1,6 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ClientBackgroundLogger", "ClientBackgroundLogger\ClientBackgroundLogger.vcxproj", "{62FBB7DC-BC57-40E7-A881-CFD694F036C0}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ClientBackgroundLoggerService", "ClientBackgroundLoggerService\ClientBackgroundLoggerService.vcxproj", "{62FBB7DC-BC57-40E7-A881-CFD694F036C0}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
