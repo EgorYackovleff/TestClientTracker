@@ -7,8 +7,9 @@
 #include <psapi.h>
 #include <string>
 #include <vector>
+#include <fstream>
 
-#define SERVER_IP "127.0.0.1/api/workactivity"
+#define SERVER_IP "127.0.0.1"
 #define SERVER_PORT 5001
 
 
@@ -17,7 +18,6 @@ class ActivityTracker {
 public:
     void startTracking()
     {
-        // Инициализация Winsock
         if (WSAStartup(MAKEWORD(2, 2), &wsaData) != 0) {
             std::cerr << "Failed to initialize Winsock." << std::endl;
             return;
@@ -30,7 +30,10 @@ public:
             std::string dataWindows = prepareData(activeWindows);
             std::string dataActiveWindow = getActiveWindowTitle();
             
-            sendDataToServer((dataApplication + "\n" + dataWindows + "\n" + dataActiveWindow).c_str());
+            sendDataToServer((dataApplication + "\n" + dataWindows + "\n" + dataActiveWindow).c_str(), "/api/workactivity");
+
+            sendScreenshotToServer();
+            
             Sleep(60000); 
         }
 
@@ -108,19 +111,79 @@ private:
         return data;
     }
 
-    void sendDataToServer(const char* data)
-    {
+
+    void sendScreenshotToServer() {
+        HDC hdcScreen = GetDC(NULL);
+
+        int screenWidth = GetSystemMetrics(SM_CXSCREEN);
+        int screenHeight = GetSystemMetrics(SM_CYSCREEN);
+
+        HDC hdcMem = CreateCompatibleDC(hdcScreen);
+
+        HBITMAP hBitmap = CreateCompatibleBitmap(hdcScreen, screenWidth, screenHeight);
+
+        SelectObject(hdcMem, hBitmap);
+
+        BitBlt(hdcMem, 0, 0, screenWidth, screenHeight, hdcScreen, 0, 0, SRCCOPY);
+
+        DeleteDC(hdcMem);
+        ReleaseDC(NULL, hdcScreen);
+
+        sendBitmapToServer(hBitmap);
+
+        DeleteObject(hBitmap);
+    }
+
+    void sendBitmapToServer(HBITMAP hBitmap) {
+        BITMAP bitmap;
+        GetObject(hBitmap, sizeof(bitmap), &bitmap);
+
+        BITMAPINFOHEADER bmih;
+        bmih.biSize = sizeof(BITMAPINFOHEADER);
+        bmih.biWidth = bitmap.bmWidth;
+        bmih.biHeight = bitmap.bmHeight;
+        bmih.biPlanes = 1;
+        bmih.biBitCount = bitmap.bmBitsPixel;
+        bmih.biCompression = BI_RGB;
+        bmih.biSizeImage = 0;
+        bmih.biXPelsPerMeter = 0;
+        bmih.biYPelsPerMeter = 0;
+        bmih.biClrUsed = 0;
+        bmih.biClrImportant = 0;
+
+        int bufferSize = sizeof(BITMAPINFOHEADER) + bitmap.bmWidth * bitmap.bmHeight * (bitmap.bmBitsPixel / 8);
+        char* buffer = new char[bufferSize];
+
+        memcpy(buffer, &bmih, sizeof(BITMAPINFOHEADER));
+        GetBitmapBits(hBitmap, bitmap.bmWidth * bitmap.bmHeight * (bitmap.bmBitsPixel / 8), buffer + sizeof(BITMAPINFOHEADER));
+
+        sendDataToServer(buffer, bufferSize, "/api/screenshot");
+
+        delete[] buffer;
+    }
+
+
+    void sendDataToServer(const char* data, int size, std::string urlPath) {
+        sendDataToServerHelper(data, size, urlPath);
+    }
+
+    void sendDataToServer(const char* data, std::string urlPath) {
+        sendDataToServerHelper(data, strlen(data), urlPath);
+    }
+    
+
+    void sendDataToServerHelper(const char* data, int size, std::string urlPath) {
         SOCKET clientSocket = socket(AF_INET, SOCK_STREAM, 0);
         if (clientSocket == INVALID_SOCKET) {
             std::cerr << "Failed to create socket 2." << std::endl;
             return;
         }
-
+        
         sockaddr_in serverAddress{};
         serverAddress.sin_family = AF_INET;
         serverAddress.sin_port = htons(SERVER_PORT);
-        if (inet_pton(AF_INET, "127.0.0.1", &(serverAddress.sin_addr)) <= 0) {
-            std::cerr << "Invalid address: 127.0.0.1" << std::endl;
+        if (inet_pton(AF_INET, SERVER_IP, &(serverAddress.sin_addr)) <= 0) {
+            std::cerr << "Invalid address: " << SERVER_IP << std::endl;
             closesocket(clientSocket);
             return;
         }
@@ -130,10 +193,10 @@ private:
             closesocket(clientSocket);
             return;
         }
-        
-        std::string httpRequest = "POST /api/workactivity HTTP/1.1\r\n";
-        httpRequest += "Host: 127.0.0.1\r\n";  // Замените на ваш хост
-        httpRequest += "Content-Length: " + std::to_string(strlen(data)) + "\r\n";
+
+        std::string httpRequest = "POST " + urlPath + " HTTP/1.1\r\n";
+        httpRequest += "Host: " + std::string(SERVER_IP) + "\r\n";
+        httpRequest += "Content-Length: " + std::to_string(size) + "\r\n";
         httpRequest += "Content-Type: text/plain\r\n";
         httpRequest += "\r\n";
         httpRequest += data;
