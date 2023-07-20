@@ -1,0 +1,4 @@
+﻿  TestService.cpp
+C:\Users\Egory\source\repos\TestService\TestService\TestService.cpp(223,44): warning C4267: аргумент: преобразование из "size_t" в "int"; возможна потеря данных
+C:\Users\Egory\source\repos\TestService\TestService\TestService.cpp(292,71): warning C4267: аргумент: преобразование из "size_t" в "int"; возможна потеря данных
+  TestService.vcxproj -> C:\Users\Egory\source\repos\TestService\x64\Debug\TestService.exe
