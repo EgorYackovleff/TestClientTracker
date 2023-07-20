@@ -1,10 +1,5 @@
 # TestClientTracker
-
-Сделал как службу, к сожалению нет системы чтобы это нормально проверить.
-
-Так запускать:
-sc create ServiceName binPath= "<полный_путь_к_исполняемому_файлу>"
-sc start ServiceName
-sc stop ServiceName
+Нужно собрать. После этого можно вручную дабавить сервис и запустить, а можно создать сервис через команду .\TestService.exe install
+После этого запустить сервис через Start-Service -Name ActivityTrackerService или sc start ActivityTrackerService
 
 Если нужна еще большая скрытость, то можно этот процесс запускать из другого, тут не хочу это оставлять
